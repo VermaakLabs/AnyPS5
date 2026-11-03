@@ -94,9 +94,8 @@ static void CheckCtimeR() {
         }
         Require(std::strlen(buffer) == 25 && buffer[26] == 'x', "ctime_r wrote past 26 bytes");
         GuestTm local{};
-        char expected[26];
-        Require(localtime_r_nid_postfix(&test.timer, &local) != nullptr && asctime_s_nid_postfix(expected, sizeof(expected), &local) == 0, "asctime_s rejected the local time");
-        Require(std::strcmp(buffer, expected) == 0, "ctime_r differs from asctime_s of localtime_r");
+        Require(localtime_r_nid_postfix(&test.timer, &local) != nullptr, "localtime_r rejected a representable time");
+        Require(std::strcmp(buffer, asctime_nid_postfix(&local)) == 0, "ctime_r differs from asctime of localtime_r");
     }
     char buffer[26] = "unchanged";
     Require(ctime_r_nid_postfix(nullptr, buffer) == nullptr && std::strcmp(buffer, "unchanged") == 0, "ctime_r accepted a null time");
