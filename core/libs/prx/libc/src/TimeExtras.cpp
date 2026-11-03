@@ -1,6 +1,8 @@
 #include "prx/libc/include/SonyCrt.hpp"
 #include "prx/libc/include/Api.hpp"
 #include <cstdint>
+#include <cstdio>
+#include <stdexcept>
 
 #include "prx/libc/include/General.hpp"
 #include "prx/libc/include/GuestTime.hpp"
@@ -24,6 +26,9 @@ std::int64_t daysFromCivil(std::int64_t year, std::int64_t month, std::int64_t d
     return era * 146097 + dayOfEra - 719468;
 }
 
+constexpr const char* weekdayNames[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+constexpr const char* monthNames[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
 std::int64_t wrappingAdd(std::int64_t left, std::int64_t right) {
     return static_cast<std::int64_t>(static_cast<std::uint64_t>(left) + static_cast<std::uint64_t>(right));
 }
@@ -38,6 +43,17 @@ GuestTm* APS5_VABI gmtime_r_nid_postfix(const std::int64_t* timer, GuestTm* resu
 
 GuestTm* APS5_VABI localtime_r_nid_postfix(const std::int64_t* timer, GuestTm* result) {
     return localtime_s_nid_postfix(timer, result);
+}
+
+char* APS5_VABI ctime_r_nid_postfix(const std::int64_t* timer, char* buffer) {
+    if (buffer == nullptr) throw std::invalid_argument("ctime_r: null buffer");
+    GuestTm local{};
+    if (localtime_r_nid_postfix(timer, &local) == nullptr) return nullptr;
+    const std::int64_t year = std::int64_t{local.tm_year} + 1900;
+    if (year < 0 || year > 9999) NotImplemented_nid_no_patch(__func__);
+    std::snprintf(buffer, 26, "%s %s%3d %02d:%02d:%02d %04d\n", weekdayNames[local.tm_wday], monthNames[local.tm_mon], local.tm_mday, local.tm_hour, local.tm_min, local.tm_sec,
+        static_cast<int>(year));
+    return buffer;
 }
 
 std::int64_t APS5_VABI timegm_nid_postfix(GuestTm* time) {
